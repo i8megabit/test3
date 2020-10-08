@@ -1,4 +1,4 @@
-## What is ansible-docker? [![Build Status](https://secure.travis-ci.org/nickjj/ansible-docker.png)](http://travis-ci.org/nickjj/ansible-docker)
+## What is ansible-docker? [![Build Status](https://travis-ci.org/nickjj/ansible-docker.svg?branch=master)](https://travis-ci.org/nickjj/ansible-docker)
 
 It is an [Ansible](http://www.ansible.com/home) role to:
 
@@ -21,15 +21,15 @@ with it then check out
 
 ## Supported platforms
 
-- Ubuntu 16.04 LTS (Xenial)
 - Ubuntu 18.04 LTS (Bionic)
+- Ubuntu 20.04 LTS (Focal Fossa)
 - Debian 9 (Stretch)
 - Debian 10 (Buster)
 
 ---
 
 *You are viewing the master branch's documentation which might be ahead of the
-latest release. [Switch to the latest release](https://github.com/nickjj/ansible-docker/tree/v1.9.1).*
+latest release. [Switch to the latest release](https://github.com/nickjj/ansible-docker/tree/v2.0.0).*
 
 ---
 
@@ -94,11 +94,11 @@ docker__channel: ["stable"]
 ```yml
 docker__version: ""
 
-# For example, pin it to 18.06.
-docker__version: "18.06"
+# For example, pin it to 19.03.
+docker__version: "19.03"
 
-# For example, pin it to a more precise version of 18.06.
-docker__version: "18.06.1"
+# For example, pin it to a more precise version of 19.03.
+docker__version: "19.03.9"
 ```
 
 *Pins are set with `*` at the end of the package version so you will end up
@@ -141,11 +141,11 @@ and pinned
 ```yml
 docker__compose_version: ""
 
-# For example, pin it to 1.23.
-docker__compose_version: "1.23"
+# For example, pin it to 1.25.
+docker__compose_version: "1.25"
 
-# For example, pin it to a more precise version of 1.23.
-docker__compose_version: "1.23.2"
+# For example, pin it to a more precise version of 1.25.
+docker__compose_version: "1.25.5"
 ```
 
 *Upgrade and downgrade strategies will be explained in the other section of this
@@ -308,6 +308,13 @@ docker__package_dependencies:
   - "gnupg2"
   - "software-properties-common"
 
+# Ansible identifies CPU architectures differently than Docker.
+docker__architecture_map:
+  "x86_64": "amd64"
+  "aarch": "arm64"
+  "armhf": "armhf"
+  "armv7l": "armhf"
+
 # The Docker GPG key id used to sign the Docker package.
 docker__apt_key_id: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
 
@@ -316,7 +323,7 @@ docker__apt_key_url: "https://download.docker.com/linux/{{ ansible_distribution 
 
 # The Docker upstream APT repository.
 docker__apt_repository: >
-  deb [arch=amd64]
+  deb [arch={{ docker__architecture_map[ansible_architecture] }}]
   https://download.docker.com/linux/{{ ansible_distribution | lower }}
   {{ ansible_distribution_release }} {{ docker__channel | join (' ') }}
 ```
@@ -339,11 +346,12 @@ This role installs PIP because Docker Compose is installed with the
 PIP package.
 
 ```yml
-# This will attempt to install the correct version of PIP based on what your
-# configured Ansible Python interpreter is set to (ie. Python 2 or 3).
 docker__pip_dependencies:
-  - "python-setuptools"
-  - "python{{ '3' if ansible_python.version.major == 3 else '' }}-pip"
+  - "gcc"
+  - "python3-setuptools"
+  - "python3-dev"
+  - "python3-pip"
+  - "virtualenv"
 ```
 
 #### Installing PIP packages
@@ -390,8 +398,9 @@ use the other `docker_*` modules in your own roles. They are not going to work
 unless you instruct Ansible to use this role's Virtualenv.
 
 At either the inventory, playbook or task level you'll need to set
-`ansible_python_interpreter: "/usr/bin/env python-docker"`. This works because
-this role symlinks the Virtualenv's Python binary to `python-docker`.
+`ansible_python_interpreter: "/usr/bin/env python3-docker"`. This works because
+this role creates a proxy script from the Virtualenv's Python binary to
+`python3-docker`.
 
 You can look at this role's `docker_login` task as an example on how to do it
 at the task level.
